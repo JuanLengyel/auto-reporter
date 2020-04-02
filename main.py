@@ -17,6 +17,8 @@ DEFAULT_ROWS_TO_SKIP = 0
 DEFAULT_OUTPUT_PATH = './out'
 DEFAULT_TEMP_PATH = DEFAULT_OUTPUT_PATH + '/temp'
 
+COLUMN_DISTANCE = 3
+
 MAIN_CONSOLE_MENU = '''
 ----------------------------------------
 --- Welcome to your auto report tool ---
@@ -73,6 +75,9 @@ if __name__ == "__main__":
       if not report_path.exists():
         print('No file found at [{0}]'.format(str(report_path.absolute())))
       else:
+        print('File found in [{0}]'.format(str(report_path.absolute())))
+        print('')
+
         rows_to_skip = input('Number of rows to skip to read report (default is [{0}]): '.format(DEFAULT_ROWS_TO_SKIP))
         rows_to_skip = int(rows_to_skip) if rows_to_skip != '' else DEFAULT_ROWS_TO_SKIP
 
@@ -92,9 +97,6 @@ if __name__ == "__main__":
     elif cmd == 'e':
       break
 
-    else:
-      print('Command not in list. Try again')
-
     if not current_report.empty:
       if cmd == '2':
         print('Unloading current report...')
@@ -109,12 +111,44 @@ if __name__ == "__main__":
         output_report_filepath = DEFAULT_OUTPUT_PATH + '/' + current_report_save_file
         print('Generating a basic report in ' + output_report_filepath)
 
-        # Get writer
-        writer = util.get_excel_writer(output_report_filepath)
+        # Get set of KPIs
+        kpis = ru.get_kpi_names_from_pivot_table(current_report)
+        # Get excel sheet names for all KPIs
+        kpi_to_sheet_name = util.get_names_for_excel_sheets(kpis)
 
-        # Write a resume sheet
-        #current_report.to_excel(writer, )
-        writer.save()
+        for kpi in kpis:
+          # Get writer
+          writer = util.get_excel_writer(output_report_filepath)
+
+          print('Generating report for {0}'.format(kpi))
+          startcol = 0
+          current_report_kpi = current_report[kpi]
+          sheet_name = kpi_to_sheet_name[kpi]
+
+          # Get grouped report by week
+          grouped_report = ru.group_by_week(current_report[kpi])
+
+          # Get mean by week report
+          print('- Generating weekly mean report')
+          week_mean_report = ru.get_mean_per_week_report(grouped_report)
+          print('- Generating weekly surpass report')
+          week_surpass_report = ru.get_times_in_week_day_surpassed_last_week_mean_report(grouped_report, 1.2)
+
+          print('- Writing reports')
+          current_report_kpi.to_excel(writer, sheet_name=sheet_name, startcol=startcol)
+          startcol = startcol + len(current_report_kpi.columns) + COLUMN_DISTANCE
+
+          print('...')
+          week_mean_report.to_excel(writer, sheet_name=sheet_name, startcol=startcol)
+          startcol = startcol + len(week_mean_report.columns) + COLUMN_DISTANCE
+
+          print('...')
+          week_surpass_report.to_excel(writer, sheet_name=sheet_name, startcol=startcol)
+          startcol = startcol + len(week_surpass_report.columns) + COLUMN_DISTANCE
+
+          writer.save()
+
+        print('Report saved')
 
         current_report_save_file = update_report_filename()
 

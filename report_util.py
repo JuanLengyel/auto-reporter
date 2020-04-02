@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 import pathlib
 import shutil
 
+def get_kpi_names_from_pivot_table(df_pivot):
+  return {kpi[0] for kpi in df_pivot.columns}
+
 def get_date_ranges_as_nice_date(df_g):
   return ['{0}-{1}'.format(df_g.get_group(key).columns.min().strftime('%b %d %Y'), df_g.get_group(key).columns.max().strftime('%b %d %Y')) for key in df_g.groups.keys()]
 
