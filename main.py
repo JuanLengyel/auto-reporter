@@ -1,8 +1,11 @@
 import datetime
 import pathlib
+import shutil
 import pandas as pd
+import openpyxl
 import test_data_factory
 import report_util as ru
+import util
 
 DEFAULT_CELL_NAME_COLUMN_NAME = 'Huawei_eUtranCell'
 DEFAULT_DATE_COLUMN_NAME = 'Time'
@@ -10,6 +13,9 @@ DEFAULT_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
 
 REPORT_DEFAULT_NAME = 'test_data.csv'
 DEFAULT_ROWS_TO_SKIP = 0
+
+DEFAULT_OUTPUT_PATH = './out'
+DEFAULT_TEMP_PATH = DEFAULT_OUTPUT_PATH + '/temp'
 
 MAIN_CONSOLE_MENU = '''
 ----------------------------------------
@@ -20,8 +26,12 @@ MAIN_CONSOLE_MENU = '''
 | [1] - Load a report                  |'''
 
 REPORT_CONSOLE_MENU = MAIN_CONSOLE_MENU + '''
-| [2] - Generate basic report          |
+| [2] - Unload current report          |
+| [3] - Generate basic report          |
 '''
+
+def update_report_filename():
+  return 'Report_' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + '.xlsx'
 
 if __name__ == "__main__":
 
@@ -76,11 +86,31 @@ if __name__ == "__main__":
         current_report[date_column_name] = ru.convert_plain_to_datetime(current_report[date_column_name], DEFAULT_DATE_FORMAT)
         current_report = ru.get_pivot_table_per_kpi(current_report, date_column_name, cell_name_column_name)
 
-        current_report_save_file = 'Report_' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + '.xlsx' 
+        current_report_save_file = update_report_filename()
         print('Report has been loaded')
 
-    elif cmd == '2':
-      pass
+    if not current_report.empty:
+      if cmd == '2':
+        print('Unloading current report...')
+        shutil.rmtree(DEFAULT_TEMP_PATH)
+        print('...')
+        current_report = pd.DataFrame()
+        print('...')
+        current_report_save_file = ''
+        print('Report unloaded')
+
+      elif cmd == '3':
+        output_report_filepath = DEFAULT_OUTPUT_PATH + '/' + current_report_save_file
+        print('Generating a basic report in ' + output_report_filepath)
+
+        # Get writer
+        writer = util.get_excel_writer(output_report_filepath)
+
+        # Write a resume sheet
+        #current_report.to_excel(writer, )
+        writer.save()
+
+        current_report_save_file = update_report_filename()
 
     elif cmd == 'e':
       break
