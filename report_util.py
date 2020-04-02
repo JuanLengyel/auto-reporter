@@ -8,6 +8,9 @@ import matplotlib.pyplot as plt
 import pathlib
 import shutil
 
+def get_date_ranges_as_nice_date(df_g):
+  return ['{0}-{1}'.format(df_g.get_group(key).columns.min().strftime('%b %d %Y'), df_g.get_group(key).columns.max().strftime('%b %d %Y')) for key in df_g.groups.keys()]
+
 def load_report(path_to_report, lines_to_skip):
   return pd.read_csv(path_to_report, skiprows=lines_to_skip)
 
@@ -17,17 +20,17 @@ def convert_plain_to_datetime(sr, date_format):
 def get_pivot_table_per_kpi(df, date_column_name, cell_name_column_name):
   return pd.pivot_table(df, columns=[date_column_name], index=[cell_name_column_name])
 
-def grouped_by_week(df):
+def group_by_week(df):
   return df.groupby(df.columns.weekofyear, axis=1)
 
 def get_mean_per_week_report(df_g):
-  date_ranges = ['{0}-{1}'.format(df_g.get_group(key).columns.min().strftime('%b %d %Y'), df_g.get_group(key).columns.max().strftime('%b %d %Y')) for key in df_g.groups.keys()]
+  date_ranges = get_date_ranges_as_nice_date(df_g)
   df_weekly_mean = df_g.mean()
   df_weekly_mean.columns = date_ranges
   return df_weekly_mean
 
 def get_times_in_week_day_surpassed_last_week_mean_report(df_g, percentage_of_mean=1):
-  date_ranges = ['{0}-{1}'.format(df_g.get_group(key).columns.min().strftime('%b %d %Y'), df_g.get_group(key).columns.max().strftime('%b %d %Y')) for key in df_g.groups.keys()]
+  date_ranges = get_date_ranges_as_nice_date(df_g)
   
   df_weekly_mean = df_g.mean() * percentage_of_mean
 
@@ -49,12 +52,8 @@ def get_times_in_week_day_surpassed_last_week_mean_report(df_g, percentage_of_me
 def get_plot_per_node_with_mean(df, kpi):
   output_path = []
 
-  if not pathlib.Path('./out/').exists():
-    pathlib.Path('./out/').mkdir()
-  if not pathlib.Path('./out/temp/').exists():
-    pathlib.Path('./out/temp/').mkdir()
   if not pathlib.Path('./out/temp/' + kpi + '/').exists():
-    pathlib.Path('./out/temp/' + kpi + '/').mkdir()
+    pathlib.Path('./out/temp/' + kpi + '/').mkdir(parents=True)
   else:
     shutil.rmtree(pathlib.Path('./out/temp/' + kpi + '/'))
     pathlib.Path('./out/temp/' + kpi + '/').mkdir()
