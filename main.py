@@ -89,6 +89,12 @@ if __name__ == "__main__":
         current_report_save_file = update_report_filename()
         print('Report has been loaded')
 
+    elif cmd == 'e':
+      break
+
+    else:
+      print('Command not in list. Try again')
+
     if not current_report.empty:
       if cmd == '2':
         print('Unloading current report...')
@@ -111,11 +117,5 @@ if __name__ == "__main__":
         writer.save()
 
         current_report_save_file = update_report_filename()
-
-    elif cmd == 'e':
-      break
-
-    else:
-      print('Command not in list. Try again')
 
     print('')
