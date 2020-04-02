@@ -4,23 +4,29 @@ import pandas as pd
 import test_data_factory
 import report_util as ru
 
+DEFAULT_CELL_NAME_COLUMN_NAME = 'Huawei_eUtranCell'
+DEFAULT_DATE_COLUMN_NAME = 'Time'
+DEFAULT_DATE_FORMAT = '%Y-%m-%d %H:%M:%S'
+
 REPORT_DEFAULT_NAME = 'test_data.csv'
+DEFAULT_ROWS_TO_SKIP = 0
 
 MAIN_CONSOLE_MENU = '''
 ----------------------------------------
 --- Welcome to your auto report tool ---
 ----------------------------------------
+| [e] - Exit                           |
 | [0] - Generate test data             |
-| [1] - Load a report                  |
-| [e] - Exit                           |'''
+| [1] - Load a report                  |'''
 
 REPORT_CONSOLE_MENU = MAIN_CONSOLE_MENU + '''
+| [2] - Generate basic report          |
 '''
-
 
 if __name__ == "__main__":
 
   current_report = pd.DataFrame()
+  current_report_save_file = ''
 
   while True:
     if (current_report.empty):
@@ -57,13 +63,29 @@ if __name__ == "__main__":
       if not report_path.exists():
         print('No file found at [{0}]'.format(str(report_path.absolute())))
       else:
-        current_report = ru.load_report(str(report_path.absolute()), 0)
+        rows_to_skip = input('Number of rows to skip to read report (default is [{0}]): '.format(DEFAULT_ROWS_TO_SKIP))
+        rows_to_skip = int(rows_to_skip) if rows_to_skip != '' else DEFAULT_ROWS_TO_SKIP
+
+        cell_name_column_name = input('Column name of cell name (default value is [{0}])'.format(DEFAULT_CELL_NAME_COLUMN_NAME))
+        cell_name_column_name = cell_name_column_name if cell_name_column_name != '' else DEFAULT_CELL_NAME_COLUMN_NAME
+
+        date_column_name = input('Column name of date (default value is [{0}])'.format(DEFAULT_DATE_COLUMN_NAME))
+        date_column_name = date_column_name if date_column_name != '' else DEFAULT_DATE_COLUMN_NAME
+
+        current_report = ru.load_report(str(report_path.absolute()), rows_to_skip)
+        current_report[date_column_name] = ru.convert_plain_to_datetime(current_report[date_column_name], DEFAULT_DATE_FORMAT)
+        current_report = ru.get_pivot_table_per_kpi(current_report, date_column_name, cell_name_column_name)
+
+        current_report_save_file = 'Report_' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + '.xlsx' 
         print('Report has been loaded')
+
+    elif cmd == '2':
+      pass
 
     elif cmd == 'e':
       break
 
     else:
       print('Command not in list. Try again')
-    
+
     print('')
