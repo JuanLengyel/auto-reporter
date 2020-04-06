@@ -15,8 +15,9 @@ def get_excel_writer(filepath):
   path = pathlib.Path(filepath)
   pathlib.Path(path.parent).mkdir(exist_ok=True)
 
-  book = openpyxl.Workbook()
-  book.save(filepath)
+  if (not path.exists()):
+    book = openpyxl.Workbook()
+    book.save(filepath)
   
   book = openpyxl.load_workbook(filepath)
   writer = pd.ExcelWriter(filepath, engine='openpyxl')
