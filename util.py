@@ -13,7 +13,7 @@ def get_excel_column_from_position(ordinal):
 
 def get_excel_writer(filepath):
   path = pathlib.Path(filepath)
-  pathlib.Path(path.parent).mkdir(exist_ok=True)
+  pathlib.Path(path.parent).mkdir(parents=True, exist_ok=True)
 
   if (not path.exists()):
     book = openpyxl.Workbook()

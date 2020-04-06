@@ -32,13 +32,15 @@ REPORT_CONSOLE_MENU = MAIN_CONSOLE_MENU + '''
 | [3] - Generate basic report          |
 '''
 
-def update_report_filename():
+def update_report_filename_xlsx():
   return 'Report_' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S') + '.xlsx'
+
+def update_report_filename_csv(kpi):
+  return 'Report_' + kpi + '_' + '.csv'
 
 if __name__ == "__main__":
 
   current_report = pd.DataFrame()
-  current_report_save_file = ''
 
   while True:
     if (current_report.empty):
@@ -64,8 +66,11 @@ if __name__ == "__main__":
       inital_date_time = input('Initial date of report (default is [{0}]): '.format(test_data_factory.INITAL_DATE_TIME))
       inital_date_time = datetime.datetime.strptime(inital_date_time, '%Y-%m-%d') if inital_date_time != '' else test_data_factory.INITAL_DATE_TIME
 
-      test_data_factory.construct_test_data(cells_in_report, days_in_report, total_kpis, inital_date_time);
+      current_report = test_data_factory.construct_test_data(cells_in_report, days_in_report, total_kpis, inital_date_time);
       print('')
+
+      current_report[DEFAULT_DATE_COLUMN_NAME] = ru.convert_plain_to_datetime(current_report[DEFAULT_DATE_COLUMN_NAME], DEFAULT_DATE_FORMAT)
+      current_report = ru.get_pivot_table_per_kpi(current_report, DEFAULT_DATE_COLUMN_NAME, DEFAULT_CELL_NAME_COLUMN_NAME)
       print('Report generated as test_data.csv. It is also loaded')
     
     elif cmd == '1':
@@ -91,7 +96,6 @@ if __name__ == "__main__":
         current_report[date_column_name] = ru.convert_plain_to_datetime(current_report[date_column_name], DEFAULT_DATE_FORMAT)
         current_report = ru.get_pivot_table_per_kpi(current_report, date_column_name, cell_name_column_name)
 
-        current_report_save_file = update_report_filename()
         print('Report has been loaded')
 
     elif cmd == 'e':
@@ -104,52 +108,97 @@ if __name__ == "__main__":
         print('...')
         current_report = pd.DataFrame()
         print('...')
-        current_report_save_file = ''
         print('Report unloaded')
 
       elif cmd == '3':
-        output_report_filepath = DEFAULT_OUTPUT_PATH + '/' + current_report_save_file
-        print('Generating a basic report in ' + output_report_filepath)
+        print('''
+        | [1] - Generate report in CSV         |
+        | [2] - Generate report in XLSX (slow!)|
+        ''')
 
-        # Get set of KPIs
-        kpis = ru.get_kpi_names_from_pivot_table(current_report)
-        # Get excel sheet names for all KPIs
-        kpi_to_sheet_name = util.get_names_for_excel_sheets(kpis)
+        cmd_2 = input('Select how to generate reports: ')
 
-        for kpi in kpis:
-          # Get writer
-          writer = util.get_excel_writer(output_report_filepath)
+        if cmd_2 == '1':
+          # Get DF with an empty row
+          pd_row = pd.DataFrame([''])
 
-          print('Generating report for {0}'.format(kpi))
-          startcol = 0
-          current_report_kpi = current_report[kpi]
-          sheet_name = kpi_to_sheet_name[kpi]
+          output_report_directory = DEFAULT_OUTPUT_PATH + '/' + datetime.datetime.now().strftime('%Y%m%d-%H%M%S')
+          print('Generating a basic reports in ' + output_report_directory)
+          pathlib.Path(output_report_directory).absolute().mkdir(parents=True, exist_ok=True)
 
-          # Get grouped report by week
-          grouped_report = ru.group_by_week(current_report[kpi])
+          # Get set of KPIs
+          kpis = ru.get_kpi_names_from_pivot_table(current_report)
 
-          # Get mean by week report
-          print('- Generating weekly mean report')
-          week_mean_report = ru.get_mean_per_week_report(grouped_report)
-          print('- Generating weekly surpass report')
-          week_surpass_report = ru.get_times_in_week_day_surpassed_last_week_mean_report(grouped_report, 1.2)
+          # Generate report file per kpi
+          for kpi in kpis:
+            print('Generating report for {0}'.format(kpi))
+            output_report_filepath = output_report_directory + '/' + update_report_filename_csv(kpi)
+            print('Generating a basic report for {0} in {1}' + output_report_filepath)
 
-          print('- Writing reports')
-          current_report_kpi.to_excel(writer, sheet_name=sheet_name, startcol=startcol)
-          startcol = startcol + len(current_report_kpi.columns) + COLUMN_DISTANCE
+            current_report_kpi = current_report[kpi]
 
-          print('...')
-          week_mean_report.to_excel(writer, sheet_name=sheet_name, startcol=startcol)
-          startcol = startcol + len(week_mean_report.columns) + COLUMN_DISTANCE
+             # Get grouped report by week
+            grouped_report = ru.group_by_week(current_report_kpi)
 
-          print('...')
-          week_surpass_report.to_excel(writer, sheet_name=sheet_name, startcol=startcol)
-          startcol = startcol + len(week_surpass_report.columns) + COLUMN_DISTANCE
+            # Get mean by week report
+            print('- Generating weekly mean report')
+            week_mean_report = ru.get_mean_per_week_report(grouped_report)
+            print('- Generating weekly surpass report')
+            week_surpass_report = ru.get_times_in_week_day_surpassed_last_week_mean_report(grouped_report, 1.2)
 
-          writer.save()
+            print('- Writing reports')
+            current_report_kpi.to_csv(output_report_filepath, mode='a')
+            pd_row.to_csv(output_report_filepath, mode='a', header=False, index=False)
+            print('...')
+            week_mean_report.to_csv(output_report_filepath, mode='a')
+            pd_row.to_csv(output_report_filepath, mode='a', header=False, index=False)
+            print('...')
+            week_surpass_report.to_csv(output_report_filepath, mode='a')
+            pd_row.to_csv(output_report_filepath, mode='a', header=False, index=False)
 
-        print('Report saved')
+        elif cmd_2 == '2':
+          output_report_filepath = DEFAULT_OUTPUT_PATH + '/' + update_report_filename_xlsx()
+          print('Generating a basic report in ' + output_report_filepath)
 
-        current_report_save_file = update_report_filename()
+          # Get set of KPIs
+          kpis = ru.get_kpi_names_from_pivot_table(current_report)
+          # Get excel sheet names for all KPIs
+          kpi_to_sheet_name = util.get_names_for_excel_sheets(kpis)
+
+          for kpi in kpis:
+            # Get writer
+            writer = util.get_excel_writer(output_report_filepath)
+
+            print('Generating report for {0}'.format(kpi))
+            startcol = 0
+            current_report_kpi = current_report[kpi]
+            sheet_name = kpi_to_sheet_name[kpi]
+
+            # Get grouped report by week
+            grouped_report = ru.group_by_week(current_report_kpi)
+
+            # Get mean by week report
+            print('- Generating weekly mean report')
+            week_mean_report = ru.get_mean_per_week_report(grouped_report)
+            print('- Generating weekly surpass report')
+            week_surpass_report = ru.get_times_in_week_day_surpassed_last_week_mean_report(grouped_report, 1.2)
+
+            print('- Writing reports')
+            current_report_kpi.to_excel(writer, sheet_name=sheet_name, startcol=startcol)
+            startcol = startcol + len(current_report_kpi.columns) + COLUMN_DISTANCE
+
+            print('...')
+            week_mean_report.to_excel(writer, sheet_name=sheet_name, startcol=startcol)
+            startcol = startcol + len(week_mean_report.columns) + COLUMN_DISTANCE
+
+            print('...')
+            week_surpass_report.to_excel(writer, sheet_name=sheet_name, startcol=startcol)
+            startcol = startcol + len(week_surpass_report.columns) + COLUMN_DISTANCE
+
+            writer.save()
+
+          print('Report saved')
+        else:
+          print('That is not a valid command')
 
     print('')
