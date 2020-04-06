@@ -1,4 +1,9 @@
 **.pyc
 **.csv
+**.spec
 /out
 /.vscode
+/env
+/dist
+/build
+/__pycache__
