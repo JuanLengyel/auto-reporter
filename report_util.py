@@ -18,7 +18,10 @@ def load_report(path_to_report, lines_to_skip):
   return pd.read_csv(path_to_report, skiprows=lines_to_skip)
 
 def convert_plain_to_datetime(sr, date_format):
-  return pd.to_datetime(sr, format=date_format)
+  return pd.to_datetime(sr, format=date_format).dt.normalize()
+
+def get_max_per_day(df, cell_name, datetime_name):
+  return df.groupby([cell_name, datetime_name]).max()
 
 def get_pivot_table_per_kpi(df, date_column_name, cell_name_column_name):
   return pd.pivot_table(df, columns=[date_column_name], index=[cell_name_column_name])

@@ -94,6 +94,7 @@ if __name__ == "__main__":
 
         current_report = ru.load_report(str(report_path.absolute()), rows_to_skip)
         current_report[date_column_name] = ru.convert_plain_to_datetime(current_report[date_column_name], DEFAULT_DATE_FORMAT)
+        current_report = ru.get_max_per_day(current_report, cell_name_column_name, date_column_name)
         current_report = ru.get_pivot_table_per_kpi(current_report, date_column_name, cell_name_column_name)
 
         print('Report has been loaded')
@@ -112,8 +113,8 @@ if __name__ == "__main__":
 
       elif cmd == '3':
         print('''
-        | [1] - Generate report in CSV         |
-        | [2] - Generate report in XLSX (slow!)|
+| [1] - Generate report in CSV         |
+| [2] - Generate report in XLSX (slow!)|
         ''')
 
         cmd_2 = input('Select how to generate reports: ')
@@ -133,7 +134,7 @@ if __name__ == "__main__":
           for kpi in kpis:
             print('Generating report for {0}'.format(kpi))
             output_report_filepath = output_report_directory + '/' + update_report_filename_csv(kpi)
-            print('Generating a basic report for {0} in {1}' + output_report_filepath)
+            print('Generating a basic report for {0} in {1}'.format(kpi, output_report_filepath))
 
             current_report_kpi = current_report[kpi]
 
