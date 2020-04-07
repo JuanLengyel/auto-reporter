@@ -19,9 +19,9 @@ def construct_test_data(number_of_cells=CELLS_IN_REPORT, number_of_days=DAYS_IN_
   listOfSeries = []
 
   for i in range(0, number_of_cells):
-    for j in range(0, number_of_days):
+    for j in range(0, number_of_days * 24):
       currentRow = ['Cell_{0}'.format(str((i + 1)).zfill(4)),
-                    str(initial_date + timedelta(days=j))]
+                    str(initial_date + timedelta(hours=j))]
       currentRow.extend(random.rand(number_of_kpis))
 
       listOfSeries.append(pd.Series(currentRow, index=columns))
