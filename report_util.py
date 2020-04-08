@@ -104,23 +104,21 @@ def get_report_per_limit(pivot_report, kpi, related_kpi, kpi_parameter):
   weekly_related_kpi = group_by_week(pivot_report[related_kpi]).mean()
 
   # Get ranges
+  list_to_iterate = list(kpi_parameter.keys())
+  list_to_iterate.sort()
   ranges = []
-  for (i, r) in enumerate(kpi_parameter.keys()):
+  for (i, r) in enumerate(list_to_iterate):
     if i == 0:
         ranges.append((float('-inf'), int(r)))
         continue
-    if i == len(kpi_parameter.keys()) - 1:
+    if i == len(list_to_iterate) - 1:
         ranges.append((int(r), float('inf')))
         continue
-    ranges.append((int(list(kpi_parameter.keys())[i - 1]), int(r)))
-    ranges.append((int(r), int(list(kpi_parameter.keys())[i + 1])))
-
-  print(ranges)
+    ranges.append((int(list_to_iterate[i - 1]), int(r)))
+    ranges.append((int(r), int(list_to_iterate[i + 1])))
 
   comparisson_dt = weekly_related_kpi.applymap(lambda x: get_upper_range(ranges, x))
-  print(comparisson_dt)
   comparisson_dt = comparisson_dt.applymap(lambda x: kpi_parameter[str(x)])
-  print(comparisson_dt)
 
   return get_times_in_week_day_surpassed_last_week_mean_report_compose(weekly_group_current_kpi, comparisson_dt, 1)
 
