@@ -55,6 +55,26 @@ def get_times_in_week_day_surpassed_last_week_mean_report(df_g, percentage_of_me
   
   return df
 
+def get_times_in_week_day_below_last_week_mean_report(df_g, percentage_of_mean=1):
+  date_ranges = get_date_ranges_as_nice_date(df_g)
+  
+  df_weekly_mean = df_g.mean() * percentage_of_mean
+
+  df = pd.DataFrame(index=df_weekly_mean.index)
+  for week_number in df_g.groups.keys():
+    if (list(df_g.groups.keys())[0] == week_number):
+      df[week_number] = 0
+      continue
+    
+    last_week_mean = df_weekly_mean[week_number - 1]
+    current_week_group = df_g.get_group(week_number)
+
+    df[week_number] = current_week_group.lt(last_week_mean, axis=0).sum(axis=1)
+  
+  df.columns = date_ranges
+  
+  return df
+
 def get_plot_per_node_with_mean(df, kpi):
   output_path = []
 

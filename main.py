@@ -146,15 +146,23 @@ if __name__ == "__main__":
             week_mean_report = ru.get_mean_per_week_report(grouped_report)
             print('- Generating weekly surpass report')
             week_surpass_report = ru.get_times_in_week_day_surpassed_last_week_mean_report(grouped_report, 1.2)
+            print('- Generating weekly below report')
+            week_below_report = ru.get_times_in_week_day_below_last_week_mean_report(grouped_report, 1.2)
 
             print('- Writing reports')
             current_report_kpi.to_csv(output_report_filepath, mode='a')
             pd_row.to_csv(output_report_filepath, mode='a', header=False, index=False)
+
             print('...')
             week_mean_report.to_csv(output_report_filepath, mode='a')
             pd_row.to_csv(output_report_filepath, mode='a', header=False, index=False)
+
             print('...')
             week_surpass_report.to_csv(output_report_filepath, mode='a')
+            pd_row.to_csv(output_report_filepath, mode='a', header=False, index=False)
+            
+            print('...')
+            week_below_report.to_csv(output_report_filepath, mode='a')
             pd_row.to_csv(output_report_filepath, mode='a', header=False, index=False)
 
         elif cmd_2 == '2':
@@ -183,6 +191,8 @@ if __name__ == "__main__":
             week_mean_report = ru.get_mean_per_week_report(grouped_report)
             print('- Generating weekly surpass report')
             week_surpass_report = ru.get_times_in_week_day_surpassed_last_week_mean_report(grouped_report, 1.2)
+            print('- Generating weekly below report')
+            week_below_report = ru.get_times_in_week_day_below_last_week_mean_report(grouped_report, 1.2)
 
             print('- Writing reports')
             current_report_kpi.to_excel(writer, sheet_name=sheet_name, startcol=startcol)
@@ -195,6 +205,10 @@ if __name__ == "__main__":
             print('...')
             week_surpass_report.to_excel(writer, sheet_name=sheet_name, startcol=startcol)
             startcol = startcol + len(week_surpass_report.columns) + COLUMN_DISTANCE
+            
+            print('...')
+            week_below_report.to_excel(writer, sheet_name=sheet_name, startcol=startcol)
+            startcol = startcol + len(week_below_report.columns) + COLUMN_DISTANCE
 
             writer.save()
 
