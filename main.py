@@ -6,6 +6,8 @@ import openpyxl
 import test_data_factory
 import report_util as ru
 import util
+import json
+from collections import defaultdict
 
 DEFAULT_CELL_NAME_COLUMN_NAME = 'Huawei_eUtranCell'
 DEFAULT_DATE_COLUMN_NAME = 'Time'
@@ -16,6 +18,13 @@ DEFAULT_ROWS_TO_SKIP = 0
 
 DEFAULT_OUTPUT_PATH = './out'
 DEFAULT_TEMP_PATH = DEFAULT_OUTPUT_PATH + '/temp'
+
+DEFAULT_FILE_PATH_PARAMETER = './parameter_per_kpi.json'
+DEFAULT_PARAMETER_VALUES = {
+    "mean_compare_over": 1.2,
+    "mean_compare_under": 0.8
+  }
+DEFAULT_LIMIT_OBJ = 'limit'
 
 COLUMN_DISTANCE = 3
 
@@ -38,9 +47,21 @@ def update_report_filename_xlsx():
 def update_report_filename_csv(kpi):
   return 'Report_' + kpi + '_' + '.csv'
 
+def get_default_dict_for_parameters_per_kpi():
+  try:
+    with open(DEFAULT_FILE_PATH_PARAMETER, 'r') as file:
+      loaded_dict = json.load(file)
+    
+    return defaultdict(lambda: DEFAULT_PARAMETER_VALUES, loaded_dict)
+  except FileNotFoundError:
+    print('Default parameters value file ({0}) not found'.format(DEFAULT_FILE_PATH_PARAMETER))
+    return defaultdict(lambda: DEFAULT_PARAMETER_VALUES)
+
+
 if __name__ == "__main__":
 
   current_report = pd.DataFrame()
+  kpi_dict = get_default_dict_for_parameters_per_kpi()
 
   while True:
     if (current_report.empty):
@@ -94,6 +115,7 @@ if __name__ == "__main__":
 
         current_report = ru.load_report(str(report_path.absolute()), rows_to_skip)
         current_report[date_column_name] = ru.convert_plain_to_datetime(current_report[date_column_name], DEFAULT_DATE_FORMAT)
+        current_report = ru.get_max_per_day(current_report, cell_name_column_name, date_column_name)
         current_report = ru.get_pivot_table_per_kpi(current_report, date_column_name, cell_name_column_name)
 
         print('Report has been loaded')
@@ -112,8 +134,8 @@ if __name__ == "__main__":
 
       elif cmd == '3':
         print('''
-        | [1] - Generate report in CSV         |
-        | [2] - Generate report in XLSX (slow!)|
+| [1] - Generate report in CSV         |
+| [2] - Generate report in XLSX (slow!)|
         ''')
 
         cmd_2 = input('Select how to generate reports: ')
@@ -133,28 +155,47 @@ if __name__ == "__main__":
           for kpi in kpis:
             print('Generating report for {0}'.format(kpi))
             output_report_filepath = output_report_directory + '/' + update_report_filename_csv(kpi)
-            print('Generating a basic report for {0} in {1}' + output_report_filepath)
+            print('Generating a basic report for {0} in {1}'.format(kpi, output_report_filepath))
 
             current_report_kpi = current_report[kpi]
 
              # Get grouped report by week
             grouped_report = ru.group_by_week(current_report_kpi)
 
-            # Get mean by week report
-            print('- Generating weekly mean report')
-            week_mean_report = ru.get_mean_per_week_report(grouped_report)
-            print('- Generating weekly surpass report')
-            week_surpass_report = ru.get_times_in_week_day_surpassed_last_week_mean_report(grouped_report, 1.2)
-
+            # Write main report
             print('- Writing reports')
             current_report_kpi.to_csv(output_report_filepath, mode='a')
             pd_row.to_csv(output_report_filepath, mode='a', header=False, index=False)
-            print('...')
-            week_mean_report.to_csv(output_report_filepath, mode='a')
+
+            # Get mean by week report
+            print('- Generating weekly mean report')
+            report = ru.get_mean_per_week_report(grouped_report)
+            report.to_csv(output_report_filepath, mode='a')
             pd_row.to_csv(output_report_filepath, mode='a', header=False, index=False)
-            print('...')
-            week_surpass_report.to_csv(output_report_filepath, mode='a')
+
+            print('- Generating weekly surpass report')
+            report = ru.get_times_in_week_day_surpassed_last_week_mean_report(grouped_report, kpi_dict[kpi]['mean_compare_over'])
+            report.to_csv(output_report_filepath, mode='a')
             pd_row.to_csv(output_report_filepath, mode='a', header=False, index=False)
+
+            print('- Generating weekly below report')
+            report = ru.get_times_in_week_day_below_last_week_mean_report(grouped_report, kpi_dict[kpi]['mean_compare_under'])
+            report.to_csv(output_report_filepath, mode='a')
+            pd_row.to_csv(output_report_filepath, mode='a', header=False, index=False)
+
+            # Check if can generate limit report
+            if DEFAULT_LIMIT_OBJ in kpi_dict[kpi]:
+              for key in kpi_dict[kpi][DEFAULT_LIMIT_OBJ].keys():
+
+                if key in kpis:
+                  # A compose limit
+                  print('- Generating limit report relating {0} and {1}'.format(kpi, key))
+                  report = ru.get_report_per_limit(current_report, kpi, key, kpi_dict[kpi][DEFAULT_LIMIT_OBJ][key])
+                  report.to_csv(output_report_filepath, mode='a')
+                  pd_row.to_csv(output_report_filepath, mode='a', header=False, index=False)
+                else:
+                  # A plain limit
+                  pass
 
         elif cmd_2 == '2':
           output_report_filepath = DEFAULT_OUTPUT_PATH + '/' + update_report_filename_xlsx()
@@ -177,23 +218,26 @@ if __name__ == "__main__":
             # Get grouped report by week
             grouped_report = ru.group_by_week(current_report_kpi)
 
-            # Get mean by week report
-            print('- Generating weekly mean report')
-            week_mean_report = ru.get_mean_per_week_report(grouped_report)
-            print('- Generating weekly surpass report')
-            week_surpass_report = ru.get_times_in_week_day_surpassed_last_week_mean_report(grouped_report, 1.2)
-
+            # Write main report
             print('- Writing reports')
             current_report_kpi.to_excel(writer, sheet_name=sheet_name, startcol=startcol)
             startcol = startcol + len(current_report_kpi.columns) + COLUMN_DISTANCE
 
-            print('...')
-            week_mean_report.to_excel(writer, sheet_name=sheet_name, startcol=startcol)
-            startcol = startcol + len(week_mean_report.columns) + COLUMN_DISTANCE
+            # Get mean by week report
+            print('- Generating weekly mean report')
+            report = ru.get_mean_per_week_report(grouped_report)
+            report.to_excel(writer, sheet_name=sheet_name, startcol=startcol)
+            startcol = startcol + len(report.columns) + COLUMN_DISTANCE
 
-            print('...')
-            week_surpass_report.to_excel(writer, sheet_name=sheet_name, startcol=startcol)
-            startcol = startcol + len(week_surpass_report.columns) + COLUMN_DISTANCE
+            print('- Generating weekly surpass report')
+            report = ru.get_times_in_week_day_surpassed_last_week_mean_report(grouped_report, kpi_dict[kpi]['mean_compare_over'])
+            report.to_excel(writer, sheet_name=sheet_name, startcol=startcol)
+            startcol = startcol + len(report.columns) + COLUMN_DISTANCE
+
+            print('- Generating weekly below report')
+            report = ru.get_times_in_week_day_below_last_week_mean_report(grouped_report, kpi_dict[kpi]['mean_compare_under'])
+            report.to_excel(writer, sheet_name=sheet_name, startcol=startcol)
+            startcol = startcol + len(report.columns) + COLUMN_DISTANCE
 
             writer.save()
 

@@ -1,0 +1,21 @@
+{
+  "Users": {
+    "mean_compare_over": 1.2,
+    "mean_compare_under": 0.8,
+    "limit": {
+      "PRBs disponibles": {
+        "25": 100,
+        "50": 200,
+        "75": 300
+      }
+    }
+  },
+  "Vol_DL": {
+    "mean_compare_over": 1.2,
+    "mean_compare_under": 0.8
+  },
+  "Thp_DL": {
+    "mean_compare_over": 1.2,
+    "mean_compare_under": 0.8
+  }
+}
