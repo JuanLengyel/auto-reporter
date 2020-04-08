@@ -3,6 +3,7 @@ from datetime import timedelta
 import datetime
 from numpy import random
 import pandas as pd
+import random as rdm
 
 # Define constants to generate test data
 CELLS_IN_REPORT = 10
@@ -14,6 +15,7 @@ def construct_test_data(number_of_cells=CELLS_IN_REPORT, number_of_days=DAYS_IN_
   # Init the DataFrame columns
   columns = ['Huawei_eUtranCell', 'Time']
   columns.extend(['KPI_{0}'.format(i + 1) for i in range(0, number_of_kpis)])
+  columns.extend(['Users', 'PRBs disponibles'])
 
   # Create random rows with valid data
   listOfSeries = []
@@ -23,6 +25,8 @@ def construct_test_data(number_of_cells=CELLS_IN_REPORT, number_of_days=DAYS_IN_
       currentRow = ['Cell_{0}'.format(str((i + 1)).zfill(4)),
                     str(initial_date + timedelta(hours=j))]
       currentRow.extend(random.rand(number_of_kpis))
+      currentRow.append(rdm.randint(1, 1000))
+      currentRow.append(rdm.randint(10, 100))
 
       listOfSeries.append(pd.Series(currentRow, index=columns))
 
